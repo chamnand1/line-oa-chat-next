@@ -1,0 +1,76 @@
+"use client";
+
+import { useState } from "react";
+import { useChatStore } from "@/stores";
+import { useMessages } from "@/hooks";
+import { config } from "@/lib/config";
+import { Sidebar, ChatArea, EmptyState } from "@/components";
+
+export default function AdminDashboard() {
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+
+  const {
+    selectedUser,
+    inputText,
+    setSelectedUser,
+    setInputText,
+    getConversations,
+    getSelectedConversation,
+  } = useChatStore();
+
+  const { sendMessage } = useMessages();
+  const conversations = getConversations();
+  const selectedConversation = getSelectedConversation();
+
+  const handleSendText = async (text: string) => {
+    if (!selectedUser || !text.trim()) return;
+
+    setInputText("");
+
+    try {
+      await sendMessage(selectedUser, text);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const handleSelectUser = (odna: string) => {
+    setSelectedUser(odna);
+    setMobileView('chat');
+  };
+
+  const handleBack = () => {
+    setMobileView('list');
+    setSelectedUser("");
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <div className={`${mobileView === 'list' ? 'flex' : 'hidden'
+        } md:flex flex-col w-full md:w-auto`}>
+        <Sidebar
+          conversations={conversations}
+          selectedUser={selectedUser}
+          onSelect={handleSelectUser}
+          appName={config.appName}
+        />
+      </div>
+
+      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'
+        } md:flex flex-1 flex-col min-w-0`}>
+        {selectedUser && selectedConversation ? (
+          <ChatArea
+            messages={selectedConversation.messages}
+            selectedUser={selectedUser}
+            inputText={inputText}
+            onInputChange={setInputText}
+            onSendText={handleSendText}
+            onBack={handleBack}
+          />
+        ) : (
+          <EmptyState />
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,11 @@
+{
+  "waiting_for_messages": "Waiting for messages...",
+  "unknown_user": "Unknown",
+  "admin": "Admin",
+  "start_conversation": "Start Conversation",
+  "send_first_message": "Send your first message",
+  "type_message": "Type a message...",
+  "select_conversation": "Select Conversation",
+  "select_user_hint": "Select a user from the left to start chatting",
+  "message_sender_you": "You"
+}
