@@ -17,8 +17,6 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
 import { useChatStore } from "@/stores";
 import { getAvatarUrl } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
-import { config } from "@/lib/config";
 
 interface Props {
   messages: MessageType[];
@@ -64,23 +62,24 @@ export function ChatArea({
 
     setIsUploading(true);
     try {
-      const fileName = `${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
-        .from(config.supabase.storage.bucketName)
-        .upload(fileName, file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-      if (error) throw error;
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      const { data: signedData, error: urlError } = await supabase.storage
-        .from(config.supabase.storage.bucketName)
-        .createSignedUrl(fileName, config.supabase.storage.expiresIn); // 1 year
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Upload failed");
+      }
 
-      if (urlError || !signedData) throw urlError;
-
-      onSendImage(signedData.signedUrl);
-    } catch (error) {
+      const data = await response.json();
+      onSendImage(data.url);
+    } catch (error: any) {
       console.error("Error uploading file:", error);
-      alert("Failed to upload image");
+      alert(`Failed to upload image: ${error.message}`);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
