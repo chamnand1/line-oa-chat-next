@@ -3,6 +3,7 @@ import { validateSignature } from "@line/bot-sdk";
 import { lineConfig, lineBlobClient } from "@/lib/line";
 import { db } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
+import { config } from "@/lib/config";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE, WEBHOOK_EVENT_TYPE } from "@/lib/constants";
 
 export async function POST(req: NextRequest) {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
           const fileName = `${event.message.id}.jpg`;
 
           const { error: uploadError } = await supabase.storage
-            .from('chat-images')
+            .from(config.supabase.storage.bucketName)
             .upload(fileName, buffer, {
               contentType: 'image/jpeg',
               upsert: true
@@ -55,13 +56,18 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('chat-images')
-            .getPublicUrl(fileName);
+          const { data: signedData, error: urlError } = await supabase.storage
+            .from(config.supabase.storage.bucketName)
+            .createSignedUrl(fileName, config.supabase.storage.expiresIn);
+
+          if (urlError || !signedData) {
+            console.error("Supabase signed URL error:", urlError);
+            continue;
+          }
 
           messageData.type = MESSAGE_TYPE.IMAGE;
           messageData.text = "Sent an image";
-          messageData.imageUrl = publicUrl;
+          messageData.imageUrl = signedData.signedUrl;
         } catch (error) {
           console.error("Error processing image:", error);
           continue;

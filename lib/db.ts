@@ -1,10 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { Message } from "@/types";
+import { config } from "@/lib/config";
 
 export const db = {
   getMessages: async (): Promise<Message[]> => {
     const { data, error } = await supabase
-      .from('messages')
+      .from(config.supabase.tableName)
       .select('*')
       .order('timestamp', { ascending: true });
 
@@ -28,7 +29,7 @@ export const db = {
   addMessage: async (message: Message): Promise<Message> => {
 
     const { error } = await supabase
-      .from('messages')
+      .from(config.supabase.tableName)
       .upsert({
         id: message.id,
         odna: message.odna,

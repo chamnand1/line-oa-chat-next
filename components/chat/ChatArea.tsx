@@ -18,6 +18,7 @@ import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
 import { useChatStore } from "@/stores";
 import { getAvatarUrl } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { config } from "@/lib/config";
 
 interface Props {
   messages: MessageType[];
@@ -65,16 +66,18 @@ export function ChatArea({
     try {
       const fileName = `${Date.now()}-${file.name}`;
       const { data, error } = await supabase.storage
-        .from('chat-images')
+        .from(config.supabase.storage.bucketName)
         .upload(fileName, file);
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-images')
-        .getPublicUrl(fileName);
+      const { data: signedData, error: urlError } = await supabase.storage
+        .from(config.supabase.storage.bucketName)
+        .createSignedUrl(fileName, config.supabase.storage.expiresIn); // 1 year
 
-      onSendImage(publicUrl);
+      if (urlError || !signedData) throw urlError;
+
+      onSendImage(signedData.signedUrl);
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Failed to upload image");

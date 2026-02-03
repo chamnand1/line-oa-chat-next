@@ -1,8 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
+import { config } from './config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+const supabaseUrl = config.supabase.url;
+const supabaseKey = config.supabase.secretKey || config.supabase.publishableKey;
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error("Missing Supabase URL or Keys");
