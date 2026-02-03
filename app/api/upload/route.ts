@@ -4,35 +4,16 @@ import { config } from "@/lib/config";
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const { path } = await req.json();
 
-    if (!file) {
-      return NextResponse.json({ message: "No file provided" }, { status: 400 });
+    if (!path) {
+      return NextResponse.json({ message: "No path provided" }, { status: 400 });
     }
 
-    if (file.size > config.supabase.storage.maxFileSize) {
-      return NextResponse.json({ message: "File too large (max 50MB)" }, { status: 413 });
-    }
-
-    const fileName = `${Date.now()}-${file.name}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const { data, error: uploadError } = await supabase.storage
-      .from(config.supabase.storage.bucketName)
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error("Supabase upload error:", uploadError);
-      return NextResponse.json({ message: "Upload failed", error: uploadError }, { status: 500 });
-    }
-
+    // Create Signed URL (valid for 1 year) using Service Role Key
     const { data: signedData, error: urlError } = await supabase.storage
       .from(config.supabase.storage.bucketName)
-      .createSignedUrl(fileName, config.supabase.storage.expiresIn);
+      .createSignedUrl(path, config.supabase.storage.expiresIn);
 
     if (urlError || !signedData) {
       console.error("Signed URL error:", urlError);
@@ -40,8 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      url: signedData.signedUrl,
-      fileName: fileName
+      url: signedData.signedUrl
     });
   } catch (error) {
     console.error("Internal Server Error:", error);

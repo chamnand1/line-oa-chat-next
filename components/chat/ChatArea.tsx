@@ -64,7 +64,7 @@ export function ChatArea({
 
     // Check file size (50MB)
     if (file.size > config.supabase.storage.maxFileSize) {
-      toast.error(t('file_too_large', { size: '50MB' }) || "File is too large (max 50MB)");
+      toast.error(t('file_too_large', { size: '50MB' }));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -73,21 +73,39 @@ export function ChatArea({
     const loadingToast = toast.loading(t('upload_loading'));
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
+      // 1. Request Signed Upload URL from server
+      const initRes = await fetch("/api/upload/init", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || t('upload_failed', { error: "" }));
-      }
+      if (!initRes.ok) throw new Error("Failed to initialize upload");
+      const { uploadUrl, path } = await initRes.json();
 
-      const data = await response.json();
-      onSendImage(data.url);
+      // 2. Upload directly to Supabase Storage (Bypasses Vercel Payload Limit)
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type }
+      });
+
+      if (!uploadRes.ok) throw new Error("Cloud upload failed");
+
+      // 3. Inform server to generate Signed Read URL
+      const completeRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+
+      if (!completeRes.ok) throw new Error("Failed to generate access URL");
+      const { url } = await completeRes.json();
+
+      onSendImage(url);
       toast.success(t('upload_success'), { id: loadingToast });
     } catch (error: any) {
       console.error("Error uploading file:", error);
@@ -185,7 +203,7 @@ export function ChatArea({
           </MessageList>
 
           <MessageInput
-            placeholder={isUploading ? "Uploading image..." : t('type_message')}
+            placeholder={isUploading ? t('upload_loading') : t('type_message')}
             value={inputText}
             onChange={(val) => onInputChange(val)}
             onSend={onSendText}
