@@ -5,6 +5,7 @@ import { useChatStore } from "@/stores";
 import { useMessages } from "@/hooks";
 import { config } from "@/lib/config";
 import { Sidebar, ChatArea, EmptyState } from "@/components";
+import { MESSAGE_TYPE } from "@/lib/constants";
 
 export default function AdminDashboard() {
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -31,6 +32,16 @@ export default function AdminDashboard() {
       await sendMessage(selectedUser, text);
     } catch (error) {
       console.error("Error:", error);
+    }
+  };
+
+  const handleSendImage = async (url: string) => {
+    if (!selectedUser || !url) return;
+
+    try {
+      await sendMessage(selectedUser, "", MESSAGE_TYPE.IMAGE, url);
+    } catch (error) {
+      console.error("Error sending image message:", error);
     }
   };
 
@@ -65,6 +76,7 @@ export default function AdminDashboard() {
             inputText={inputText}
             onInputChange={setInputText}
             onSendText={handleSendText}
+            onSendImage={handleSendImage}
             onBack={handleBack}
           />
         ) : (

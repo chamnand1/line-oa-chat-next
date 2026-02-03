@@ -21,9 +21,9 @@ export function useMessages() {
     return () => clearInterval(interval);
   }, [setMessages]);
 
-  const sendMessage = async (odna: string, text: string) => {
+  const sendMessage = async (odna: string, text: string, type?: string, imageUrl?: string) => {
     try {
-      const newMsg = await messageService.send(odna, text);
+      const newMsg = await messageService.send(odna, text, type, imageUrl);
       addMessage(newMsg);
       return newMsg;
     } catch (error) {

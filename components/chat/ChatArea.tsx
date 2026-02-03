@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MainContainer,
   ChatContainer,
@@ -17,6 +17,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
 import { useChatStore } from "@/stores";
 import { getAvatarUrl } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 interface Props {
   messages: MessageType[];
@@ -24,6 +25,7 @@ interface Props {
   inputText: string;
   onInputChange: (text: string) => void;
   onSendText: (text: string) => void;
+  onSendImage: (url: string) => void;
   onBack?: () => void;
 }
 
@@ -33,10 +35,13 @@ export function ChatArea({
   inputText,
   onInputChange,
   onSendText,
+  onSendImage,
   onBack,
 }: Props) {
   const { t } = useTranslation();
   const { profiles, fetchUserProfile } = useChatStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const profile = profiles[selectedUser];
   const displayName = profile?.displayName || selectedUser.slice(0, 16);
@@ -48,8 +53,46 @@ export function ChatArea({
     }
   }, [selectedUser, fetchUserProfile]);
 
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileName = `${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('chat-images')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-images')
+        .getPublicUrl(fileName);
+
+      onSendImage(publicUrl);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-screen">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
 
       <MainContainer>
         <ChatContainer>
@@ -91,8 +134,7 @@ export function ChatArea({
                   model={{
                     ...(msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl
                       ? {
-                        type: "image",
-                        payload: { src: msg.imageUrl },
+                        type: "custom",
                       }
                       : {
                         message: msg.text,
@@ -112,17 +154,29 @@ export function ChatArea({
                       name={displayName}
                     />
                   )}
+                  {msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl && (
+                    <Message.CustomContent>
+                      <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={msg.imageUrl}
+                          alt="sent image"
+                          className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        />
+                      </a>
+                    </Message.CustomContent>
+                  )}
                 </Message>
               ))
             )}
           </MessageList>
 
           <MessageInput
-            placeholder={t('type_message')}
+            placeholder={isUploading ? "Uploading image..." : t('type_message')}
             value={inputText}
             onChange={(val) => onInputChange(val)}
             onSend={onSendText}
-            attachButton={false}
+            onAttachClick={handleAttachClick}
+            disabled={isUploading}
           />
         </ChatContainer>
       </MainContainer>

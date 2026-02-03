@@ -9,11 +9,11 @@ export const messageService = {
     return res.json();
   },
 
-  send: async (odna: string, text: string): Promise<Message> => {
+  send: async (odna: string, text: string, type: string = "text", imageUrl?: string): Promise<Message> => {
     const res = await fetch(`${API_BASE}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ odna, text }),
+      body: JSON.stringify({ odna, text, type, imageUrl }),
     });
     if (!res.ok) throw new Error("Failed to send message");
     return res.json();

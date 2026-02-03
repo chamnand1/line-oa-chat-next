@@ -9,23 +9,41 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { odna, text } = await req.json();
+    const { odna, text, type, imageUrl } = await req.json();
 
-    if (!odna || !text) {
-      return NextResponse.json({ message: "Missing userId or text" }, { status: 400 });
+    if (!odna) {
+      return NextResponse.json({ message: "Missing userId" }, { status: 400 });
     }
 
-    await lineClient.pushMessage({
-      to: odna,
-      messages: [{ type: "text", text }],
-    });
+    const msgType = type || MESSAGE_TYPE.TEXT;
+
+    if (msgType === MESSAGE_TYPE.TEXT) {
+      if (!text) return NextResponse.json({ message: "Missing text" }, { status: 400 });
+
+      await lineClient.pushMessage({
+        to: odna,
+        messages: [{ type: "text", text }],
+      });
+    } else if (msgType === MESSAGE_TYPE.IMAGE) {
+      if (!imageUrl) return NextResponse.json({ message: "Missing imageUrl" }, { status: 400 });
+
+      await lineClient.pushMessage({
+        to: odna,
+        messages: [{
+          type: "image",
+          originalContentUrl: imageUrl,
+          previewImageUrl: imageUrl
+        }],
+      });
+    }
 
     const newMessage = await db.addMessage({
       id: Date.now().toString(),
       odna,
       direction: MESSAGE_DIRECTION.OUTGOING,
-      type: MESSAGE_TYPE.TEXT,
-      text,
+      type: msgType,
+      text: text || (msgType === MESSAGE_TYPE.IMAGE ? "Sent an image" : ""),
+      imageUrl: imageUrl,
       timestamp: Date.now(),
     });
 
