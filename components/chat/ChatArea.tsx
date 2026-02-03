@@ -17,6 +17,8 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
 import { useChatStore } from "@/stores";
 import { getAvatarUrl } from "@/lib/utils";
+import toast from "react-hot-toast";
+import { config } from "@/lib/config";
 
 interface Props {
   messages: MessageType[];
@@ -60,7 +62,16 @@ export function ChatArea({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check file size (50MB)
+    if (file.size > config.supabase.storage.maxFileSize) {
+      toast.error(t('file_too_large', { size: '50MB' }) || "File is too large (max 50MB)");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setIsUploading(true);
+    const loadingToast = toast.loading(t('upload_loading'));
+
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -72,14 +83,15 @@ export function ChatArea({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Upload failed");
+        throw new Error(errorData.message || t('upload_failed', { error: "" }));
       }
 
       const data = await response.json();
       onSendImage(data.url);
+      toast.success(t('upload_success'), { id: loadingToast });
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      alert(`Failed to upload image: ${error.message}`);
+      toast.error(t('upload_failed', { error: error.message }), { id: loadingToast });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

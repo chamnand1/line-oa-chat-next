@@ -7,5 +7,9 @@
   "type_message": "Type a message...",
   "select_conversation": "Select Conversation",
   "select_user_hint": "Select a user from the left to start chatting",
-  "message_sender_you": "You"
+  "message_sender_you": "You",
+  "file_too_large": "File is too large (max {size})",
+  "upload_loading": "Uploading image...",
+  "upload_success": "Image uploaded successfully!",
+  "upload_failed": "Failed to upload image: {error}"
 }

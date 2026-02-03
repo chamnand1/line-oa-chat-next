@@ -7,5 +7,9 @@
   "type_message": "พิมพ์ข้อความ...",
   "select_conversation": "เลือกการสนทนา",
   "select_user_hint": "เลือกผู้ใช้จากรายการด้านซ้ายเพื่อเริ่มแชท",
-  "message_sender_you": "คุณ"
+  "message_sender_you": "คุณ",
+  "file_too_large": "ขนาดไฟล์ใหญ่เกินไป (สูงสุด {size})",
+  "upload_loading": "กำลังอัปโหลดรูปภาพ...",
+  "upload_success": "อัปโหลดรูปภาพสำเร็จ!",
+  "upload_failed": "อัปโหลดรูปภาพไม่สำเร็จ: {error}"
 }

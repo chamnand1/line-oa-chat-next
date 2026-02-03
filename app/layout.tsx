@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 };
 
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <LanguageProvider>
           {children}
+          <Toaster position="top-center" />
         </LanguageProvider>
       </body>
     </html>

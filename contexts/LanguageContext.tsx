@@ -10,7 +10,7 @@ type Translations = Record<string, string>;
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, options?: Record<string, string>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -35,8 +35,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('app-language', lang);
   };
 
-  const t = (key: TranslationKey): string => {
-    return translations[language][key] || key;
+  const t = (key: TranslationKey, options?: Record<string, string>): string => {
+    let translation = translations[language][key] || key;
+
+    if (options) {
+      Object.entries(options).forEach(([k, v]) => {
+        translation = translation.replace(`{${k}}`, v);
+      });
+    }
+
+    return translation;
   };
 
   return (

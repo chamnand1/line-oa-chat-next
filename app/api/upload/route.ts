@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "No file provided" }, { status: 400 });
     }
 
+    if (file.size > config.supabase.storage.maxFileSize) {
+      return NextResponse.json({ message: "File too large (max 50MB)" }, { status: 413 });
+    }
+
     const fileName = `${Date.now()}-${file.name}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
