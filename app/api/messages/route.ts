@@ -4,7 +4,7 @@ import { lineClient } from "@/lib/line";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
 
 export async function GET() {
-  return NextResponse.json(db.getMessages());
+  return NextResponse.json(await db.getMessages());
 }
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       messages: [{ type: "text", text }],
     });
 
-    const newMessage = db.addMessage({
+    const newMessage = await db.addMessage({
       id: Date.now().toString(),
       odna,
       direction: MESSAGE_DIRECTION.OUTGOING,

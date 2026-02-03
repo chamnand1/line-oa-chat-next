@@ -1,55 +1,50 @@
-import fs from "fs";
-import path from "path";
-
-const DB_PATH = path.join(process.cwd(), "db.json");
-
-import { MessageDirection, MessageType } from "@/lib/constants";
-
-export interface Message {
-  id: string;
-  odna: string;
-  direction: MessageDirection;
-  type: MessageType;
-  text: string;
-  imageUrl?: string;
-  timestamp: number;
-  webhookEventId?: string;
-}
-
-interface DB {
-  messages: Message[];
-}
-
-function readDb(): DB {
-  try {
-    if (!fs.existsSync(DB_PATH)) {
-      return { messages: [] };
-    }
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
-  } catch {
-    return { messages: [] };
-  }
-}
-
-function writeDb(data: DB) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-}
+import { supabase } from "@/lib/supabase";
+import { Message } from "@/types";
 
 export const db = {
-  getMessages: () => {
-    const messages = readDb().messages;
-    return messages.sort((a, b) => a.timestamp - b.timestamp);
-  },
-  addMessage: (message: Message) => {
-    const data = readDb();
+  getMessages: async (): Promise<Message[]> => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .order('timestamp', { ascending: true });
 
-    const exists = data.messages.some(m => m.id === message.id);
-    if (exists) {
-      return message;
+    if (error) {
+      console.error("Error fetching messages:", error);
+      return [];
     }
 
-    data.messages.push(message);
-    writeDb(data);
+    return data.map((row: any) => ({
+      id: row.id,
+      odna: row.odna,
+      direction: row.direction,
+      type: row.type,
+      text: row.text,
+      imageUrl: row.image_url,
+      timestamp: Number(row.timestamp),
+      webhookEventId: row.webhook_event_id,
+    }));
+  },
+
+  addMessage: async (message: Message): Promise<Message> => {
+
+    const { error } = await supabase
+      .from('messages')
+      .upsert({
+        id: message.id,
+        odna: message.odna,
+        direction: message.direction,
+        type: message.type,
+        text: message.text,
+        image_url: message.imageUrl,
+        webhook_event_id: message.webhookEventId,
+        timestamp: message.timestamp,
+      });
+
+    if (error) {
+      console.error("Error adding message:", error);
+      throw error;
+    }
+
     return message;
   },
 };

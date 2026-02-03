@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateSignature } from "@line/bot-sdk";
 import { lineConfig, lineBlobClient } from "@/lib/line";
 import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE, WEBHOOK_EVENT_TYPE } from "@/lib/constants";
-import fs from "fs";
-import path from "path";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -43,27 +42,35 @@ export async function POST(req: NextRequest) {
           const buffer = Buffer.concat(chunks);
 
           const fileName = `${event.message.id}.jpg`;
-          const uploadDir = path.join(process.cwd(), "public", "uploads");
 
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+          const { error: uploadError } = await supabase.storage
+            .from('chat-images')
+            .upload(fileName, buffer, {
+              contentType: 'image/jpeg',
+              upsert: true
+            });
+
+          if (uploadError) {
+            console.error("Supabase upload error:", uploadError);
+            continue;
           }
 
-          const filePath = path.join(uploadDir, fileName);
-          fs.writeFileSync(filePath, buffer);
+          const { data: { publicUrl } } = supabase.storage
+            .from('chat-images')
+            .getPublicUrl(fileName);
 
           messageData.type = MESSAGE_TYPE.IMAGE;
           messageData.text = "Sent an image";
-          messageData.imageUrl = `/uploads/${fileName}`;
+          messageData.imageUrl = publicUrl;
         } catch (error) {
-          console.error("Error downloading image:", error);
+          console.error("Error processing image:", error);
           continue;
         }
       } else {
         continue;
       }
 
-      db.addMessage(messageData);
+      await db.addMessage(messageData);
     }
   }
 
