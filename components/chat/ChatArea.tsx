@@ -62,7 +62,6 @@ export function ChatArea({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (50MB)
     if (file.size > config.supabase.storage.maxFileSize) {
       toast.error(t('file_too_large', { size: '50MB' }));
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -73,7 +72,6 @@ export function ChatArea({
     const loadingToast = toast.loading(t('upload_loading'));
 
     try {
-      // 1. Request Signed Upload URL from server
       const initRes = await fetch("/api/upload/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,7 +84,6 @@ export function ChatArea({
       if (!initRes.ok) throw new Error("Failed to initialize upload");
       const { uploadUrl, path } = await initRes.json();
 
-      // 2. Upload directly to Supabase Storage (Bypasses Vercel Payload Limit)
       const uploadRes = await fetch(uploadUrl, {
         method: "PUT",
         body: file,
@@ -95,7 +92,6 @@ export function ChatArea({
 
       if (!uploadRes.ok) throw new Error("Cloud upload failed");
 
-      // 3. Inform server to generate Signed Read URL
       const completeRes = await fetch("/api/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,7 +113,8 @@ export function ChatArea({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-screen">
+    <div className="flex-1 flex flex-col h-dvh chat-area-container">
+
       <input
         type="file"
         ref={fileInputRef}
