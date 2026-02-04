@@ -187,7 +187,7 @@ export function ChatArea({
 
       <div
         ref={messageListRef}
-        className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-3"
+        className="flex-1 overflow-y-auto min-h-0 px-4 py-4 flex flex-col-reverse gap-3"
         style={{ scrollBehavior: 'smooth' }}
       >
         {isLoadingInitial ? (
@@ -205,28 +205,6 @@ export function ChatArea({
           </div>
         ) : (
           <>
-            {hasMore && (
-              <div className="flex justify-center p-4">
-                <button
-                  onClick={onLoadMore}
-                  disabled={isLoadingMore}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 bg-emerald-50 rounded-full hover:bg-emerald-100 disabled:opacity-50"
-                >
-                  {isLoadingMore ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUpIcon className="w-4 h-4" />
-                      Load Older Messages
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <div className="w-16 h-16 mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -236,7 +214,7 @@ export function ChatArea({
                 <p className="text-sm text-gray-400 mt-1">{t('send_first_message')}</p>
               </div>
             ) : (
-              messages.map((msg) => (
+              [...messages].reverse().map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'justify-end' : 'justify-start'}`}
@@ -277,6 +255,29 @@ export function ChatArea({
                   </div>
                 </div>
               ))
+            )}
+
+            {hasMore && messages.length > 0 && (
+              <div className="flex justify-center p-4">
+                <button
+                  onClick={onLoadMore}
+                  disabled={isLoadingMore}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 bg-emerald-50 rounded-full hover:bg-emerald-100 disabled:opacity-50"
+                  aria-label="Load older messages"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpIcon className="w-4 h-4" />
+                      Load Older Messages
+                    </>
+                  )}
+                </button>
+              </div>
             )}
           </>
         )}
