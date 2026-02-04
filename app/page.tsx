@@ -74,9 +74,9 @@ export default function AdminDashboard() {
 
       <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'
         } md:flex flex-1 flex-col min-w-0`}>
-        {selectedUser && selectedConversation ? (
+        {selectedUser ? (
           <ChatArea
-            messages={selectedConversation.messages}
+            messages={selectedConversation?.messages || []}
             selectedUser={selectedUser}
             inputText={inputText}
             onInputChange={setInputText}
@@ -84,8 +84,8 @@ export default function AdminDashboard() {
             onSendImage={handleSendImage}
             onBack={handleBack}
             hasMore={hasMoreByUser[selectedUser]}
-            isLoadingMore={loadingByUser[selectedUser] && (selectedConversation.messages.length > 0)}
-            isLoadingInitial={loadingByUser[selectedUser] && (selectedConversation.messages.length === 0)}
+            isLoadingMore={loadingByUser[selectedUser] && (selectedConversation?.messages.length || 0) > 0}
+            isLoadingInitial={loadingByUser[selectedUser] && (!selectedConversation || selectedConversation.messages.length === 0)}
             onLoadMore={() => loadMoreMessages(selectedUser)}
           />
         ) : (
