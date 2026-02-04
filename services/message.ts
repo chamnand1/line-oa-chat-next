@@ -1,10 +1,30 @@
 import { Message } from "@/types";
+import { config } from "@/lib/config";
 
 const API_BASE = "/api";
 
+interface PaginatedMessages {
+  messages: Message[];
+  hasMore: boolean;
+}
+
 export const messageService = {
-  getAll: async (): Promise<Message[]> => {
-    const res = await fetch(`${API_BASE}/messages`);
+  getByUser: async (
+    odna: string,
+    limit: number = config.pagination.messagesPerPage,
+    before?: number
+  ): Promise<PaginatedMessages> => {
+    const params = new URLSearchParams({ odna, limit: limit.toString() });
+    if (before) params.append('before', before.toString());
+
+    const res = await fetch(`${API_BASE}/messages?${params}`);
+    if (!res.ok) throw new Error("Failed to fetch messages");
+    return res.json();
+  },
+
+  getRecent: async (limit: number = config.pagination.messagesPerPage): Promise<PaginatedMessages> => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    const res = await fetch(`${API_BASE}/messages?${params}`);
     if (!res.ok) throw new Error("Failed to fetch messages");
     return res.json();
   },

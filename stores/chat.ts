@@ -1,17 +1,24 @@
 import { create } from "zustand";
 import { Message, Conversation, UserProfile } from "@/types";
+import { messageService } from "@/services";
+import { config } from "@/lib/config";
 
 interface ChatState {
-  messages: Message[];
+  messagesByUser: Record<string, Message[]>;
+  hasMoreByUser: Record<string, boolean>;
+  loadingByUser: Record<string, boolean>;
+
   selectedUser: string | null;
   inputText: string;
   isLoading: boolean;
 
-  setMessages: (messages: Message[]) => void;
-  addMessage: (message: Message) => void;
   setSelectedUser: (odna: string | null) => void;
   setInputText: (text: string) => void;
   setLoading: (loading: boolean) => void;
+
+  loadMessages: (odna: string) => Promise<void>;
+  loadMoreMessages: (odna: string) => Promise<void>;
+  addMessage: (message: Message) => void;
 
   getConversations: () => Conversation[];
   getSelectedConversation: () => Conversation | undefined;
@@ -19,21 +26,104 @@ interface ChatState {
   profiles: Record<string, UserProfile>;
   isLoadingProfile: Record<string, boolean>;
   fetchUserProfile: (odna: string) => Promise<void>;
+
+  recentMessages: Message[];
+  loadRecentMessages: () => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  messages: [],
+  messagesByUser: {},
+  hasMoreByUser: {},
+  loadingByUser: {},
   selectedUser: null,
   inputText: "",
   isLoading: false,
   profiles: {},
   isLoadingProfile: {},
+  recentMessages: [],
 
-  setMessages: (messages) => set({ messages }),
-  addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setSelectedUser: (odna) => set({ selectedUser: odna }),
   setInputText: (text) => set({ inputText: text }),
   setLoading: (loading) => set({ isLoading: loading }),
+
+  loadMessages: async (odna) => {
+    const { messagesByUser, loadingByUser } = get();
+
+    if (messagesByUser[odna]?.length > 0 || loadingByUser[odna]) return;
+
+    set((state) => ({
+      loadingByUser: { ...state.loadingByUser, [odna]: true }
+    }));
+
+    try {
+      const { messages, hasMore } = await messageService.getByUser(odna, config.pagination.messagesPerPage);
+      set((state) => ({
+        messagesByUser: { ...state.messagesByUser, [odna]: messages },
+        hasMoreByUser: { ...state.hasMoreByUser, [odna]: hasMore },
+        loadingByUser: { ...state.loadingByUser, [odna]: false }
+      }));
+    } catch (error) {
+      console.error("Error loading messages:", error);
+      set((state) => ({
+        loadingByUser: { ...state.loadingByUser, [odna]: false }
+      }));
+    }
+  },
+
+  loadMoreMessages: async (odna) => {
+    const { messagesByUser, hasMoreByUser, loadingByUser } = get();
+
+    if (!hasMoreByUser[odna] || loadingByUser[odna]) return;
+
+    const messages = messagesByUser[odna] || [];
+    const oldestTimestamp = messages.length > 0 ? messages[0].timestamp : undefined;
+
+    set((state) => ({
+      loadingByUser: { ...state.loadingByUser, [odna]: true }
+    }));
+
+    try {
+      const { messages: olderMessages, hasMore } = await messageService.getByUser(
+        odna,
+        config.pagination.messagesPerPage,
+        oldestTimestamp
+      );
+
+      set((state) => ({
+        messagesByUser: {
+          ...state.messagesByUser,
+          [odna]: [...olderMessages, ...messages]
+        },
+        hasMoreByUser: { ...state.hasMoreByUser, [odna]: hasMore },
+        loadingByUser: { ...state.loadingByUser, [odna]: false }
+      }));
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+      set((state) => ({
+        loadingByUser: { ...state.loadingByUser, [odna]: false }
+      }));
+    }
+  },
+
+  addMessage: (message) => {
+    const odna = message.odna;
+    set((state) => ({
+      messagesByUser: {
+        ...state.messagesByUser,
+        [odna]: [...(state.messagesByUser[odna] || []), message]
+      },
+      recentMessages: [...state.recentMessages, message]
+    }));
+  },
+
+  loadRecentMessages: async () => {
+    try {
+      const { messages } = await messageService.getRecent(100);
+      set({ recentMessages: messages });
+    } catch (error) {
+      console.error("Error loading recent messages:", error);
+    }
+  },
 
   fetchUserProfile: async (odna) => {
     const { profiles, isLoadingProfile } = get();
@@ -66,8 +156,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   getConversations: () => {
-    const { messages } = get();
-    const grouped = messages.reduce((acc, msg) => {
+    const { recentMessages } = get();
+    const grouped = recentMessages.reduce((acc, msg) => {
       const odna = msg.odna || "unknown";
       if (!acc[odna]) {
         acc[odna] = { odna, lastMessage: msg, messages: [] };
@@ -85,7 +175,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   getSelectedConversation: () => {
-    const { selectedUser } = get();
-    return get().getConversations().find((c) => c.odna === selectedUser);
+    const { selectedUser, messagesByUser } = get();
+    if (!selectedUser) return undefined;
+
+    const messages = messagesByUser[selectedUser] || [];
+    if (messages.length === 0) return undefined;
+
+    return {
+      odna: selectedUser,
+      messages,
+      lastMessage: messages[messages.length - 1]
+    };
   },
 }));

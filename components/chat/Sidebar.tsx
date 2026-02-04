@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Sidebar as ChatSidebar,
-  ConversationList,
-  Conversation,
-  Avatar,
-} from "@chatscope/chat-ui-kit-react";
 import { XMarkIcon, UserIcon } from "@heroicons/react/24/outline";
-import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
 import { Conversation as ConversationType } from "@/types";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { MESSAGE_DIRECTION, LANGUAGE_LABEL } from "@/lib/constants";
@@ -33,7 +26,7 @@ const ConversationItem = ({
   onClick: () => void;
 }) => {
   const { t } = useTranslation();
-  const { profiles, fetchUserProfile, isLoadingProfile } = useChatStore();
+  const { profiles, fetchUserProfile } = useChatStore();
 
   const profile = profiles[conv.odna];
   const displayName = profile?.displayName || t('unknown_user');
@@ -45,18 +38,28 @@ const ConversationItem = ({
     }
   }, [conv.odna, fetchUserProfile]);
 
+  const lastMessageText = conv.lastMessage.direction === MESSAGE_DIRECTION.OUTGOING
+    ? `${t('message_sender_you')}: ${conv.lastMessage.text}`
+    : conv.lastMessage.text;
+
   return (
-    <Conversation
-      name={displayName}
-      info={conv.lastMessage.direction === MESSAGE_DIRECTION.OUTGOING ? `${t('message_sender_you')}: ${conv.lastMessage.text}` : conv.lastMessage.text}
-      active={active}
+    <button
       onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${active ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'border-l-4 border-transparent'
+        }`}
     >
-      <Avatar
+      <img
         src={avatarUrl}
-        status="available"
+        alt={displayName}
+        className="w-12 h-12 rounded-full object-cover bg-gray-200 flex-shrink-0"
       />
-    </Conversation>
+      <div className="flex-1 min-w-0">
+        <h3 className={`font-medium truncate ${active ? 'text-emerald-700' : 'text-gray-900'}`}>
+          {displayName}
+        </h3>
+        <p className="text-sm text-gray-500 truncate">{lastMessageText}</p>
+      </div>
+    </button>
   );
 };
 
@@ -92,17 +95,13 @@ export function Sidebar({
   };
 
   return (
-    <div className="w-full md:w-80 flex flex-col h-screen border-r border-slate-200">
-      <div className="p-4 bg-white border-b flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="font-semibold text-slate-800">{displayName}</h1>
-          </div>
-        </div>
+    <div className="w-full md:w-80 flex flex-col h-screen border-r border-gray-200 bg-white">
+      <div className="flex-shrink-0 p-4 bg-white border-b border-gray-200 flex items-center justify-between">
+        <h1 className="font-semibold text-gray-800">{displayName}</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleLanguage}
-            className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+            className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
           >
             {language === 'th' ? LANGUAGE_LABEL.en : LANGUAGE_LABEL.th}
           </button>
@@ -110,7 +109,7 @@ export function Sidebar({
           {onClose && (
             <button
               onClick={onClose}
-              className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+              className="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <XMarkIcon className="w-5 h-5" />
             </button>
@@ -118,29 +117,27 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <ChatSidebar position="left">
-          <ConversationList>
-            {conversations.length === 0 ? (
-              <div className="p-6 text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
-                  <UserIcon className="w-6 h-6 text-slate-400" />
-                </div>
-                <p className="text-sm text-slate-500">{t('waiting_for_messages')}</p>
-              </div>
-            ) : (
-              conversations.map((conv) => (
-                <ConversationItem
-                  key={conv.odna}
-                  conv={conv}
-                  active={selectedUser === conv.odna}
-                  onClick={() => onSelect(conv.odna)}
-                />
-              ))
-            )}
-          </ConversationList>
-        </ChatSidebar>
+      <div className="flex-1 overflow-y-auto">
+        {conversations.length === 0 ? (
+          <div className="p-6 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
+              <UserIcon className="w-6 h-6 text-gray-400" />
+            </div>
+            <p className="text-sm text-gray-500">{t('waiting_for_messages')}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {conversations.map((conv) => (
+              <ConversationItem
+                key={conv.odna}
+                conv={conv}
+                active={selectedUser === conv.odna}
+                onClick={() => onSelect(conv.odna)}
+              />
+            ))}
+          </div>
+        )}
       </div>
-    </div >
+    </div>
   );
 }

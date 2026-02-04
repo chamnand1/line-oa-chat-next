@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { config } from "@/lib/config";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE, WEBHOOK_EVENT_TYPE } from "@/lib/constants";
+import { Message } from "@/types";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -22,12 +23,16 @@ export async function POST(req: NextRequest) {
 
   for (const event of data.events) {
     if (event.type === WEBHOOK_EVENT_TYPE.MESSAGE) {
-      let messageData: any = {
+      if (!event.source.userId) continue;
+
+      let messageData: Message = {
         id: event.message.id,
-        odna: event.source.userId!,
+        odna: event.source.userId,
         direction: MESSAGE_DIRECTION.INCOMING,
         timestamp: event.timestamp,
         webhookEventId: event.webhookEventId,
+        type: MESSAGE_TYPE.TEXT,
+        text: "",
       };
 
       if (event.message.type === MESSAGE_TYPE.TEXT) {

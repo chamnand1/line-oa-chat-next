@@ -3,18 +3,36 @@ import { Message } from "@/types";
 import { config } from "@/lib/config";
 
 export const db = {
-  getMessages: async (): Promise<Message[]> => {
-    const { data, error } = await supabase
+  getMessages: async (
+    odna?: string,
+    limit: number = config.pagination.messagesPerPage,
+    beforeTimestamp?: number
+  ): Promise<{ messages: Message[]; hasMore: boolean }> => {
+    let query = supabase
       .from(config.supabase.tableName)
-      .select('*')
-      .order('timestamp', { ascending: true });
+      .select('*');
+
+    if (odna) {
+      query = query.eq('odna', odna);
+    }
+
+    if (beforeTimestamp) {
+      query = query.lt('timestamp', beforeTimestamp);
+    }
+
+    query = query
+      .order('timestamp', { ascending: false })
+      .limit(limit + 1);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching messages:", error);
-      return [];
+      return { messages: [], hasMore: false };
     }
 
-    return data.map((row: any) => ({
+    const hasMore = data.length > limit;
+    const messages = data.slice(0, limit).map((row: any) => ({
       id: row.id,
       odna: row.odna,
       direction: row.direction,
@@ -24,6 +42,8 @@ export const db = {
       timestamp: Number(row.timestamp),
       webhookEventId: row.webhook_event_id,
     }));
+
+    return { messages: messages.reverse(), hasMore };
   },
 
   addMessage: async (message: Message): Promise<Message> => {

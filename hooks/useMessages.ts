@@ -4,22 +4,17 @@ import { messageService } from "@/services";
 import { config } from "@/lib/config";
 
 export function useMessages() {
-  const { messages, setMessages, addMessage } = useChatStore();
+  const {
+    recentMessages,
+    loadRecentMessages,
+    addMessage
+  } = useChatStore();
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const data = await messageService.getAll();
-        setMessages(data);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      }
-    };
-
-    fetchMessages();
-    const interval = setInterval(fetchMessages, config.pollingInterval);
+    loadRecentMessages();
+    const interval = setInterval(loadRecentMessages, config.pollingInterval);
     return () => clearInterval(interval);
-  }, [setMessages]);
+  }, []);
 
   const sendMessage = async (odna: string, text: string, type?: string, imageUrl?: string) => {
     try {
@@ -32,5 +27,5 @@ export function useMessages() {
     }
   };
 
-  return { messages, sendMessage };
+  return { messages: recentMessages, sendMessage };
 }

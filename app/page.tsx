@@ -17,6 +17,10 @@ export default function AdminDashboard() {
     setInputText,
     getConversations,
     getSelectedConversation,
+    loadMessages,
+    loadMoreMessages,
+    hasMoreByUser,
+    loadingByUser,
   } = useChatStore();
 
   const { sendMessage } = useMessages();
@@ -47,6 +51,7 @@ export default function AdminDashboard() {
 
   const handleSelectUser = (odna: string) => {
     setSelectedUser(odna);
+    loadMessages(odna);
     setMobileView('chat');
   };
 
@@ -78,6 +83,10 @@ export default function AdminDashboard() {
             onSendText={handleSendText}
             onSendImage={handleSendImage}
             onBack={handleBack}
+            hasMore={hasMoreByUser[selectedUser]}
+            isLoadingMore={loadingByUser[selectedUser] && (selectedConversation.messages.length > 0)}
+            isLoadingInitial={loadingByUser[selectedUser] && (selectedConversation.messages.length === 0)}
+            onLoadMore={() => loadMoreMessages(selectedUser)}
           />
         ) : (
           <EmptyState />

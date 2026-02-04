@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeftIcon, PaperAirplaneIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, PaperAirplaneIcon, PhotoIcon, ArrowUpIcon } from "@heroicons/react/24/outline";
 import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
 import { Message as MessageType } from "@/types";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -19,6 +19,10 @@ interface Props {
   onSendText: (text: string) => void;
   onSendImage: (url: string) => void;
   onBack?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  isLoadingInitial?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function ChatArea({
@@ -29,6 +33,10 @@ export function ChatArea({
   onSendText,
   onSendImage,
   onBack,
+  hasMore = false,
+  isLoadingMore = false,
+  isLoadingInitial = false,
+  onLoadMore,
 }: Props) {
   const { t } = useTranslation();
   const { profiles, fetchUserProfile } = useChatStore();
@@ -46,11 +54,48 @@ export function ChatArea({
     }
   }, [selectedUser, fetchUserProfile]);
 
-  useEffect(() => {
+  const hasInitialScrolled = useRef(false);
+
+  const scrollToBottom = () => {
     if (messageListRef.current) {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
+  };
+
+  useEffect(() => {
+    if (messages.length > 0 && !hasInitialScrolled.current) {
+      hasInitialScrolled.current = true;
+
+      const container = messageListRef.current;
+      if (!container) return;
+
+      const images = container.querySelectorAll('img');
+
+      if (images.length === 0) {
+        requestAnimationFrame(scrollToBottom);
+        return;
+      }
+
+      const imagePromises = Array.from(images).map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      });
+
+      Promise.race([
+        Promise.all(imagePromises),
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]).then(() => {
+        requestAnimationFrame(scrollToBottom);
+      });
+    }
   }, [messages]);
+
+  useEffect(() => {
+    hasInitialScrolled.current = false;
+  }, [selectedUser]);
 
   const handleAttachClick = () => {
     fileInputRef.current?.click();
@@ -125,21 +170,19 @@ export function ChatArea({
 
   return (
     <div className="flex flex-col h-dvh bg-gray-50">
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
-        <button
-          onClick={onBack}
-          className="md:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
-        </button>
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
+        {onBack && (
+          <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <ArrowLeftIcon className="w-6 h-6 text-gray-500" />
+          </button>
+        )}
         <img
           src={avatarUrl}
           alt={displayName}
-          className="w-10 h-10 rounded-full object-cover bg-gray-200"
+          className="w-10 h-10 rounded-full object-cover"
         />
-        <div className="flex-1 min-w-0">
-          <h2 className="font-semibold text-gray-900 truncate">{displayName}</h2>
-        </div>
+        <h2 className="text-lg font-semibold text-gray-800 truncate">{displayName}</h2>
       </div>
 
       <div
@@ -147,59 +190,99 @@ export function ChatArea({
         className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-3"
         style={{ scrollBehavior: 'smooth' }}
       >
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
-              <ChatBubbleLeftEllipsisIcon className="w-8 h-8 text-emerald-500" />
-            </div>
-            <p className="text-gray-600 font-medium">{t('start_conversation')}</p>
-            <p className="text-sm text-gray-400 mt-1">{t('send_first_message')}</p>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`flex gap-2 max-w-[80%] ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'flex-row-reverse' : ''}`}>
-                {msg.direction === MESSAGE_DIRECTION.INCOMING && (
-                  <img
-                    src={avatarUrl}
-                    alt={displayName}
-                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+        {isLoadingInitial ? (
+          <div className="space-y-6 pt-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                <div className={`flex gap-2 max-w-[80%] ${i % 2 === 0 ? 'flex-row-reverse' : ''}`}>
+                  <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse flex-shrink-0" />
+                  <div className={`h-12 w-32 rounded-2xl ${i % 2 === 0 ? 'bg-emerald-100' : 'bg-gray-200'} animate-pulse`}
+                    style={{ width: `${Math.random() * 100 + 100}px` }}
                   />
-                )}
-                <div
-                  className={`px-4 py-2 rounded-2xl ${msg.direction === MESSAGE_DIRECTION.OUTGOING
-                    ? 'bg-emerald-500 text-white rounded-br-md'
-                    : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
-                    }`}
-                >
-                  {msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl ? (
-                    <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={msg.imageUrl}
-                        alt="sent image"
-                        className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                      />
-                    </a>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
-                  )}
-                  <p className={`text-xs mt-1 ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'text-emerald-100' : 'text-gray-400'
-                    }`}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
+        ) : (
+          <>
+            {hasMore && (
+              <div className="flex justify-center p-4">
+                <button
+                  onClick={onLoadMore}
+                  disabled={isLoadingMore}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 bg-emerald-50 rounded-full hover:bg-emerald-100 disabled:opacity-50"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpIcon className="w-4 h-4" />
+                      Load Older Messages
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-16 h-16 mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <ChatBubbleLeftEllipsisIcon className="w-8 h-8 text-emerald-500" />
+                </div>
+                <p className="text-gray-600 font-medium">{t('start_conversation')}</p>
+                <p className="text-sm text-gray-400 mt-1">{t('send_first_message')}</p>
+              </div>
+            ) : (
+              messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex gap-2 max-w-[80%] ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'flex-row-reverse' : ''}`}>
+                    {msg.direction === MESSAGE_DIRECTION.INCOMING && (
+                      <img
+                        src={avatarUrl}
+                        alt={displayName}
+                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                      />
+                    )}
+                    <div
+                      className={`px-4 py-2 rounded-2xl ${msg.direction === MESSAGE_DIRECTION.OUTGOING
+                        ? 'bg-emerald-500 text-white rounded-br-md'
+                        : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
+                        }`}
+                    >
+                      {msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl ? (
+                        <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={msg.imageUrl}
+                            alt="sent image"
+                            className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        </a>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
+                      )}
+                      <p className={`text-xs mt-1 ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'text-emerald-100' : 'text-gray-400'
+                        }`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </>
         )}
       </div>
 
+      {/* Input area */}
       <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-gray-200"
         style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
         <input

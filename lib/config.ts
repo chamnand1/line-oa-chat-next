@@ -16,6 +16,10 @@ export const config = {
       bucketName: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "chat-images",
       expiresIn: parseInt(process.env.NEXT_PUBLIC_SUPABASE_STORAGE_EXPIRES_IN || "31536000", 10),
       maxFileSize: 50 * 1024 * 1024, // 50MB
-    }
+    },
+  },
+
+  pagination: {
+    messagesPerPage: parseInt(process.env.NEXT_PUBLIC_MESSAGES_PER_PAGE || "50", 10),
   }
 };

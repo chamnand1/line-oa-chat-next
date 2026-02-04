@@ -9,8 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@chatscope/chat-ui-kit-react": "^2.1.1",
-    "@chatscope/chat-ui-kit-styles": "^1.4.0",
     "@heroicons/react": "^2.2.0",
     "@line/bot-sdk": "^10.6.0",
     "@supabase/supabase-js": "^2.93.3",

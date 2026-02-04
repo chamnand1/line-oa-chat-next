@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "No path provided" }, { status: 400 });
     }
 
-    // Create Signed URL (valid for 1 year) using Service Role Key
     const { data: signedData, error: urlError } = await supabase.storage
       .from(config.supabase.storage.bucketName)
       .createSignedUrl(path, config.supabase.storage.expiresIn);

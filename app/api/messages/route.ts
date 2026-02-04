@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { config } from "@/lib/config";
 import { lineClient } from "@/lib/line";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
 
-export async function GET() {
-  return NextResponse.json(await db.getMessages());
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const odna = searchParams.get('odna') || undefined;
+  const limit = parseInt(searchParams.get('limit') || config.pagination.messagesPerPage.toString());
+  const beforeParam = searchParams.get('before');
+  const before = beforeParam ? parseInt(beforeParam) : undefined;
+
+  const result = await db.getMessages(odna, limit, before);
+  return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {
