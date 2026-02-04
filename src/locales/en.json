@@ -11,5 +11,8 @@
   "file_too_large": "File is too large (max {size})",
   "upload_loading": "Uploading image...",
   "upload_success": "Image uploaded successfully!",
-  "upload_failed": "Failed to upload image: {error}"
+  "upload_failed": "Failed to upload image: {error}",
+  "loading": "Loading...",
+  "load_more": "Load Older Messages",
+  "sent_image_alt": "sent image"
 }

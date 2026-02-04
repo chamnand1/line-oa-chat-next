@@ -24,4 +24,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-ibm-plex-sans-thai), ui-sans-serif, system-ui, sans-serif;
+  overscroll-behavior-y: none;
+  height: 100dvh;
+  overflow: hidden;
 }

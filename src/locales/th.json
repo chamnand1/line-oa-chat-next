@@ -11,5 +11,8 @@
   "file_too_large": "ขนาดไฟล์ใหญ่เกินไป (สูงสุด {size})",
   "upload_loading": "กำลังอัปโหลดรูปภาพ...",
   "upload_success": "อัปโหลดรูปภาพสำเร็จ!",
-  "upload_failed": "อัปโหลดรูปภาพไม่สำเร็จ: {error}"
+  "upload_failed": "อัปโหลดรูปภาพไม่สำเร็จ: {error}",
+  "loading": "กำลังโหลด...",
+  "load_more": "ดูข้อความเก่า",
+  "sent_image_alt": "รูปภาพ"
 }

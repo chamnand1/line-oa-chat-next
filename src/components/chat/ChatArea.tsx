@@ -237,7 +237,7 @@ export function ChatArea({
                         <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
                           <img
                             src={msg.imageUrl}
-                            alt="sent image"
+                            alt={t('sent_image_alt')}
                             className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                           />
                         </a>
@@ -263,17 +263,17 @@ export function ChatArea({
                   onClick={onLoadMore}
                   disabled={isLoadingMore}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 bg-emerald-50 rounded-full hover:bg-emerald-100 disabled:opacity-50"
-                  aria-label="Load older messages"
+                  aria-label={t('load_more')}
                 >
                   {isLoadingMore ? (
                     <>
                       <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                      Loading...
+                      {t('loading')}
                     </>
                   ) : (
                     <>
                       <ArrowUpIcon className="w-4 h-4" />
-                      Load Older Messages
+                      {t('load_more')}
                     </>
                   )}
                 </button>
@@ -293,11 +293,11 @@ export function ChatArea({
           accept="image/*"
           className="hidden"
         />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 max-w-full">
           <button
             onClick={handleAttachClick}
             disabled={isUploading}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0"
           >
             <PhotoIcon className="w-6 h-6 text-gray-500" />
           </button>
@@ -308,12 +308,12 @@ export function ChatArea({
             onKeyDown={handleKeyDown}
             placeholder={isUploading ? t('upload_loading') : t('type_message')}
             disabled={isUploading}
-            className="flex-1 px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400"
+            className="flex-1 min-w-0 px-4 py-2 text-base rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400"
           />
           <button
             onClick={handleSend}
             disabled={!inputText.trim() || isUploading}
-            className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
             <PaperAirplaneIcon className="w-5 h-5" />
           </button>
