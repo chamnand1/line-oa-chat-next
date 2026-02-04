@@ -1,17 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  MainContainer,
-  ChatContainer,
-  MessageList,
-  Message,
-  MessageInput,
-  ConversationHeader,
-  Avatar,
-} from "@chatscope/chat-ui-kit-react";
+import { ArrowLeftIcon, PaperAirplaneIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
-import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
 import { Message as MessageType } from "@/types";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { MESSAGE_DIRECTION, MESSAGE_TYPE } from "@/lib/constants";
@@ -42,6 +33,7 @@ export function ChatArea({
   const { t } = useTranslation();
   const { profiles, fetchUserProfile } = useChatStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const profile = profiles[selectedUser];
@@ -53,6 +45,12 @@ export function ChatArea({
       fetchUserProfile(selectedUser);
     }
   }, [selectedUser, fetchUserProfile]);
+
+  useEffect(() => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleAttachClick = () => {
     fileInputRef.current?.click();
@@ -112,103 +110,131 @@ export function ChatArea({
     }
   };
 
+  const handleSend = () => {
+    if (inputText.trim() && !isUploading) {
+      onSendText(inputText);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-dvh chat-area-container">
+    <div className="flex flex-col h-dvh bg-gray-50">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
+        <button
+          onClick={onBack}
+          className="md:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+        </button>
+        <img
+          src={avatarUrl}
+          alt={displayName}
+          className="w-10 h-10 rounded-full object-cover bg-gray-200"
+        />
+        <div className="flex-1 min-w-0">
+          <h2 className="font-semibold text-gray-900 truncate">{displayName}</h2>
+        </div>
+      </div>
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
-
-      <MainContainer>
-        <ChatContainer>
-          <ConversationHeader>
-            <ConversationHeader.Back onClick={onBack} />
-            <Avatar
-              src={avatarUrl}
-              name={displayName}
-              status="available"
-            />
-            <ConversationHeader.Content
-              userName={displayName}
-            />
-          </ConversationHeader>
-
-          <MessageList>
-            {messages.length === 0 ? (
-              <MessageList.Content
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                  textAlign: "center",
-                  padding: "20px",
-                }}
-              >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <ChatBubbleLeftEllipsisIcon className="w-8 h-8 text-emerald-500" />
-                </div>
-                <p className="text-slate-600 font-medium">{t('start_conversation')}</p>
-                <p className="text-sm text-slate-400 mt-1">{t('send_first_message')}</p>
-              </MessageList.Content>
-            ) : (
-              messages.map((msg) => (
-                <Message
-                  key={msg.id}
-                  model={{
-                    ...(msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl
-                      ? {
-                        type: "custom",
-                      }
-                      : {
-                        message: msg.text,
-                      }),
-                    sentTime: new Date(msg.timestamp).toLocaleTimeString([], {
+      <div
+        ref={messageListRef}
+        className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-3"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-16 h-16 mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+              <ChatBubbleLeftEllipsisIcon className="w-8 h-8 text-emerald-500" />
+            </div>
+            <p className="text-gray-600 font-medium">{t('start_conversation')}</p>
+            <p className="text-sm text-gray-400 mt-1">{t('send_first_message')}</p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`flex gap-2 max-w-[80%] ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'flex-row-reverse' : ''}`}>
+                {msg.direction === MESSAGE_DIRECTION.INCOMING && (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  />
+                )}
+                <div
+                  className={`px-4 py-2 rounded-2xl ${msg.direction === MESSAGE_DIRECTION.OUTGOING
+                    ? 'bg-emerald-500 text-white rounded-br-md'
+                    : 'bg-white text-gray-900 rounded-bl-md shadow-sm border border-gray-100'
+                    }`}
+                >
+                  {msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl ? (
+                    <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={msg.imageUrl}
+                        alt="sent image"
+                        className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      />
+                    </a>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
+                  )}
+                  <p className={`text-xs mt-1 ${msg.direction === MESSAGE_DIRECTION.OUTGOING ? 'text-emerald-100' : 'text-gray-400'
+                    }`}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
-                    }),
-                    sender: msg.direction === MESSAGE_DIRECTION.INCOMING ? displayName : t('admin'),
-                    direction: msg.direction,
-                    position: "single",
-                  }}
-                >
-                  {msg.direction === MESSAGE_DIRECTION.INCOMING && (
-                    <Avatar
-                      src={avatarUrl}
-                      name={displayName}
-                    />
-                  )}
-                  {msg.type === MESSAGE_TYPE.IMAGE && msg.imageUrl && (
-                    <Message.CustomContent>
-                      <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={msg.imageUrl}
-                          alt="sent image"
-                          className="max-w-[200px] h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                        />
-                      </a>
-                    </Message.CustomContent>
-                  )}
-                </Message>
-              ))
-            )}
-          </MessageList>
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
-          <MessageInput
-            placeholder={isUploading ? t('upload_loading') : t('type_message')}
-            value={inputText}
-            onChange={(val) => onInputChange(val)}
-            onSend={onSendText}
-            onAttachClick={handleAttachClick}
+      <div className="flex-shrink-0 px-4 py-3 bg-white border-t border-gray-200"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          className="hidden"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleAttachClick}
             disabled={isUploading}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+          >
+            <PhotoIcon className="w-6 h-6 text-gray-500" />
+          </button>
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => onInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isUploading ? t('upload_loading') : t('type_message')}
+            disabled={isUploading}
+            className="flex-1 px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400"
           />
-        </ChatContainer>
-      </MainContainer>
+          <button
+            onClick={handleSend}
+            disabled={!inputText.trim() || isUploading}
+            className="p-2 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <PaperAirplaneIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
