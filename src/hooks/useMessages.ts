@@ -5,12 +5,8 @@ import { useChatStore } from "@/src/stores";
 import { messageService } from "@/src/services";
 import { config } from "@/src/lib/config";
 
-/**
- * Hook to handle polling of recent messages.
- * Should be used once in a high-level layout.
- */
 export function useMessagesPolling() {
-  const { loadRecentMessages } = useChatStore();
+  const loadRecentMessages = useChatStore((state) => state.loadRecentMessages);
 
   useEffect(() => {
     loadRecentMessages();
@@ -19,11 +15,9 @@ export function useMessagesPolling() {
   }, [loadRecentMessages]);
 }
 
-/**
- * Hook to interact with messages (send, etc.)
- */
 export function useMessages() {
-  const { recentMessages, addMessage } = useChatStore();
+  const recentMessages = useChatStore((state) => state.recentMessages);
+  const addMessage = useChatStore((state) => state.addMessage);
 
   const sendMessage = useCallback(async (odna: string, text: string, type?: string, imageUrl?: string) => {
     try {

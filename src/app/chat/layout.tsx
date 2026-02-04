@@ -1,19 +1,39 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useCallback } from "react";
 import { useChatStore } from "@/src/stores";
 import { config } from "@/src/lib/config";
 import { Sidebar } from "@/src/components";
 import { useMessagesPolling } from "@/src/hooks";
+import { Conversation } from "@/src/types";
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { selectedUser, getConversations } = useChatStore();
+
+  const selectedUser = useChatStore((state) => state.selectedUser);
+  const recentMessages = useChatStore((state) => state.recentMessages);
 
   useMessagesPolling();
 
-  const conversations = getConversations();
+  const conversations = useMemo(() => {
+    const grouped = recentMessages.reduce((acc, msg) => {
+      const odna = msg.odna || "unknown";
+      if (!acc[odna]) {
+        acc[odna] = { odna, lastMessage: msg, messages: [] };
+      }
+      acc[odna].messages.push(msg);
+      if (msg.timestamp > acc[odna].lastMessage.timestamp) {
+        acc[odna].lastMessage = msg;
+      }
+      return acc;
+    }, {} as Record<string, Conversation>);
+
+    return Object.values(grouped).sort(
+      (a, b) => b.lastMessage.timestamp - a.lastMessage.timestamp
+    );
+  }, [recentMessages]);
 
   const isChatDetailPage = pathname.startsWith('/chat/') && pathname !== '/chat';
 
